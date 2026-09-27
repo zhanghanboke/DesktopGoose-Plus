@@ -1,0 +1,333 @@
+Desktop Goose Plus —— 二次开发整合包
+=====================================
+
+基于 Desktop Goose v0.3（原作者 Sam Chiet），通过官方 Modding API
+新增了六项功能，并换掉了一批内容（便签文案 + 表情包）。
+原程序只改了一处：为了去掉那个每次启动都弹的确认框，改了 5 个字节
+（见下面「关于那个『Mod Enabler Warning』确认框」，以及 dev\patch-exe.py）。
+
+
+一、怎么跑起来
+--------------
+1. 双击「启动 GoosePlus.bat」
+2. 屏幕右下角托盘会出现一只白色小鹅图标 —— 说明 Mod 加载成功了
+3. 想退出就右键托盘图标 →「退出鹅」，或者双击「关闭 Goose.bat」
+   （原版要长按 ESC 好几秒才能退，现在不用了）
+
+关于那个「Mod Enabler Warning」确认框 —— 已经去掉了
+----------------------------------------------------
+原程序有个烦人的行为：每次启动都会弹一个英文的是/否框
+（"Mods are not created by the maker of Desktop Goose..."）。
+
+★ 这是**原程序写死的行为，不是出错了**：只要 config.ini 里
+  EnableMods=True 就会弹，而且它**不记住**你上次点的是什么，
+  所以每次都要再点一遍。不点「是」的话，任何 Mod 都不会加载。
+
+★ 本包里的 GooseDesktop.exe **已经改过二进制**，这个框不会再弹了，
+  双击 exe 或双击 bat 都一样。改的是 MainGame::Init() 里那一句
+  调用 MessageBox.Show 的 IL，把它换成等长的 4 个 pop + 1 个 ldc.i4.6
+  （等于「参数丢掉、结果恒为『是』」），所以：
+    · 一共只动 5 个字节（文件偏移 0x4559: 28 e7 00 00 0a → 26 26 26 26 1c）；
+    · 不移动任何 IL 偏移，不改分支目标；
+    · config.ini 里 EnableMods=False 时**依然不会**加载 Mod，开关语义没变。
+
+  改法在 dev\patch-exe.py（可重复执行，重复跑会提示「已经打过补丁」）。
+  原版备份：dist\_original-backup\GooseDesktop.exe.orig。
+  想还原就把那个 .orig 改名成 GooseDesktop.exe 覆盖回去。
+
+★ GoosePlusLauncher.exe 是**没打补丁时的老办法** —— 它负责在框弹出的
+  一瞬间替你点「是」。现在用不到了，留着只是备用：万一你哪天把
+  GooseDesktop.exe 换回了原版，用它启动仍然能正常加载 Mod。
+
+  ★ 建桌面快捷方式 / 固定到任务栏：现在指向 exe 或 .bat 都行
+    （exe 已经不会弹框了）。以前必须指向 .bat，现在不必了。
+
+注意：GoosePlus 只会加载 Assets\Mods\GoosePlus\ 下的 DLL。
+该文件夹里不能放 GooseModdingAPI.dll，否则加载会失败。
+
+
+二、新增功能
+------------
+
+1) 小伙伴群（鹅 / 猫 / 柴犬）—— 默认关闭
+   官方 v0.4 预告过但一直没做的多鹅。原程序只有一只鹅，所以这里
+   额外维护一群小动物：独立移动物理、会跟着真鹅跑、会走路抬脚甩尾巴。
+
+   ★ 默认是 0 只（关闭）。想开就在托盘菜单 →「小伙伴数量」里选
+     0 / 1 / 3 / 5 / 8 / 12 只。
+
+   种类可选：混合（鹅+猫+柴犬轮流）／全部鹅／全部猫／全部柴犬。
+
+   鹅：画风和真鹅完全一致 —— 不是另画一套简笔画，而是直接复用了原程序的
+       RenderGoose：给它塞一个假的 GooseEntity（自带 position / direction /
+       rig），它就原样画一只鹅出来。
+   猫 / 柴犬：自己写的，但严格照抄原版的笔法 —— 影子用同一张 shadowBrush
+       纹理，身体每一节都是「圆头粗线」胶囊，先描边色画一遍（宽 +2.2）
+       再填充色画一遍，眼睛是 Brushes.Black 小圆点。所以三只摆在一起
+       是同一套画风，不会有一个像贴纸的违和感。
+       猫：竖起来的尾巴会摆，有内耳和胡须。
+       柴犬：卷尾翘在背上，白肚皮 + 白脸颊 + 白口鼻 + 黑鼻头。
+
+   填充全部复用 renderData 里已有的画笔，所以换皮肤、开彩虹渐变时
+   它们会跟着一起变。大小用 Graphics 的世界变换绕自身位置缩放，
+   笔宽等比缩，不变形。
+
+2) 托盘菜单 + 全局热键
+   托盘右键菜单：暂停鹅、小伙伴数量、小伙伴种类、皮肤（含彩虹渐变）、
+   番茄钟、鹅的文案、召唤鹅、让鹅叫、赶鹅出屏、静音、热键说明、
+   打开目录、退出。
+
+   全局热键（任何时候都生效，鹅不在前台也能用）：
+     Ctrl+Alt+G   召唤鹅到鼠标位置
+     Ctrl+Alt+H   让鹅叫一声
+     Ctrl+Alt+P   暂停 / 继续
+     Ctrl+Alt+K   换下一个皮肤
+     Ctrl+Alt+B   小伙伴 开 / 关
+     Ctrl+Alt+O   把鹅赶出屏幕
+     Ctrl+Alt+R   立刻弹一次提醒
+     Ctrl+Alt+J   彩虹渐变 开 / 关
+     Ctrl+Alt+T   番茄钟 开始 / 暂停
+     Ctrl+Alt+N   番茄钟 跳过当前阶段
+
+3) 皮肤系统
+   改的是鹅身体 / 嘴脚 / 描边三个颜色，实时生效。
+   内置 6 套：Classic、Midnight、Sunset、Mint、Golden、Void。
+   自定义：往 Assets\Mods\GoosePlus\Skins\ 里放 *.skin 文件，格式：
+
+       name=我的皮
+       body=#FFD9B3
+       beak=#FF7043
+       outline=#7B3F00
+
+   颜色支持 #RRGGBB 或 R,G,B 两种写法。重启鹅后会出现在菜单里。
+
+   彩虹渐变（平滑，不是频闪）：
+   托盘 → 皮肤 →「开启彩虹渐变」，或按 Ctrl+Alt+J。
+   色相按时间线性推进，三个颜色各错开相位（身体 0°、嘴脚 +30°、
+   描边 +200°），所以是连续过渡，不会一跳一跳。速度三档：
+   慢 36 秒/圈、中 16 秒/圈、快 8 秒/圈。
+
+   注意：原包自带的 Assets\Mods\RainbowStrobe 是「频闪」实现，它每一帧
+   都在改同一批画笔，会和这里打架。打包脚本已经把它从整合包里排除了；
+   如果你直接跑根目录那份程序，建议把 Assets\Mods\RainbowStrobe 整个删掉。
+
+4) 番茄钟（休息时让鹅叼便签来提醒）
+   真正的阶段机，不是间隔闹钟：专注 → 短休，交替 4 轮后接一次长休。
+   默认 25 / 5 / 15 分钟，托盘菜单里另有 50/10/20、90/20/30 两档预设。
+   可以暂停、跳过本阶段、重置循环；今天完成几个番茄会记在
+   Assets\Mods\GoosePlus\pomodoro-stats.txt 里。
+
+   ★ 开局是「待机」，不会自动开始。想开始时点托盘菜单 →「番茄钟」→「开始」，
+     或按 Ctrl+Alt+T。
+
+   ★ 剩余时间显示在托盘图标上：鼠标悬停在托盘小鹅上就能看到
+     「专注 12:34 · 今日 2」，不用打开任何窗口。
+
+   两个阶段里鹅的表现是反过来的：
+
+     专注时：鹅照常在屏幕上走动（陪伴感留着），但不发声、
+             不弹表情包/便签窗、也不会来抢鼠标。
+     休息时：恢复声音，然后鹅会跑出屏幕，再**叼着一张便签拖回屏幕中间**。
+             那张便签是一个真实窗口，会挡住你的内容，你得亲手关掉它 ——
+             所以想忽略都难。
+
+   自定义文案（改完重启鹅生效，一个文件一条）：
+     Messages\Focus\*.txt   专注开始时用
+     Messages\Break\*.txt   休息时用（叼过来的便签就是这句）
+
+5) 鹅的碎碎念
+   游戏自带 6 句英文便签（"am goose hjonk" 之类），这里另外补了 **118 句**
+   中文的，便签池合计 124 张，让鹅显得像在陪你：
+
+     我今天想你了 (・ω・)      你在干嘛呀？鹅在看你
+     鹅爱你。但鹅不会说出口     你笑一下，鹅就走
+     鹅不是来捣乱的，鹅是来陪你的  HJONK。没别的意思，就是想叫你一声
+     记得眨眼，你刚才好久没眨    鹅的今日任务：陪着你。已完成 0%
+     不用一直很厉害，鹅不介意    你在开会吗？鹅可以替你点头
+
+   语气分了 7 类：想念陪伴 / 关心作息 / 自嘲发呆 / 吐槽玩笑 /
+   时间日常 / 温暖的话 / 拟声短句。
+
+   ★ 这些便签只在**没有专注任务**的时候出现 —— 专注期鹅的便签任务会被
+     自动收起来，休息期便签位置让给休息提醒。
+
+   文案真身在 Messages\Idle\*.txt，一个文件一条（001.txt … 118.txt）。
+   每次启动自动同步进游戏便签目录，所以改完重启就生效，删掉也会跟着消失。
+   托盘菜单 →「鹅的文案」里可以一键开关，以及打开三个文案目录。
+
+   ★ 想改条数：加/删 txt 就行，重启后自动生效。但注意最多同步 130 条。
+
+6) 表情包（内容换了，不是新机制）
+   鹅叼梗图用的是 Assets\Images\Memes\ 这个目录，抽到哪张是随机的。
+   原来是 6 张壁纸，但都是 6720×3051 那种超大 PNG，加起来 **75 MB** ——
+   而游戏显示那个窗口只有 400×400，多出来的像素一点用都没有，
+   还拖慢启动。
+
+   现在扩到 **26 张、合计 7 MB**：
+
+     · 原有 6 张压成了 JPG（单张 26.7 MB → 0.06 MB），
+       其中那张动画 GIF 保留动画，只缩到 400px / 128 色（7.2 MB → 5.1 MB）；
+     · 新增 20 张 cover-NN.jpg，14 张风景 / 抽象 / 动物 + 6 张二次元，
+       全部人工挑选。
+
+   想换成自己喜欢的图：直接把图片丢进 Assets\Images\Memes\ 就行，
+   支持 JPG / PNG / GIF / BMP。
+
+   ★★ 千万别往这个目录放非图片文件（尤其是 mp4 / mkv 视频）。
+      游戏那边是「把目录里所有文件都当图片读」，读到非图片会弹一个
+      报错框并把整只鹅卡死。打包脚本已经自动过滤掉视频，
+      但你自己往根目录版本里加文件时要留意。
+
+7) 叼东西间隔
+   原版鹅叼东西是**完全随机的、没有节流**：一段路走完就抽一个任务，
+   而可抽的任务一共只有三个（踩泥脚印 / 叼表情包 / 叼便签），
+   所以连着叼两张表情包、中间只隔十几秒是很常见的。
+
+   现在给鹅的"手速"加了个上限，而且**文本和图片分开设**：
+
+     便签（文本）   默认 15 分钟
+     表情包（图片） 默认 20 分钟
+
+   意思是：鹅叼完一张便签之后，15 分钟内不会再叼便签（表情包同理）。
+   冷却期间鹅还是会照常走动、还是会叼另一种东西，只是不会重复叼同一类。
+
+   ★ 托盘菜单 →「叼东西间隔」里改，第一行会实时显示还剩多久
+     （形如「便签 12分30秒后 / 表情包 可叼」）。
+     两个都选「不限制」就等于恢复原版的完全随机。
+
+   ★ 番茄钟休息时那张提醒便签是**专门投递**的，不受这个限制 ——
+     休息提醒是你自己要的，不该被"刚叼过"挡掉。
+
+
+三、配置文件
+------------
+Assets\Mods\GoosePlus\settings.ini
+
+    GhostCount=0           小伙伴数量（0-20），默认 0 = 关闭
+    GhostScale=0.75        小伙伴相对真鹅的大小
+    CompanionKind=Mix      种类：Mix / Goose / Cat / Shiba
+    Skin=Classic           默认皮肤名
+    Rainbow=False          彩虹渐变开关
+    RainbowSpeed=22        彩虹速度（度/秒），360/这个值 = 一圈秒数
+    IdleChat=True          鹅的碎碎念便签开关
+
+    PomodoroEnabled=True           番茄钟总开关
+    PomodoroFocusMinutes=25        专注时长
+    PomodoroShortBreakMinutes=5    短休时长
+    PomodoroLongBreakMinutes=15    长休时长
+    PomodoroRoundsBeforeLongBreak=4  几轮专注后接长休
+    PomodoroNotepad=True           休息时让鹅叼便签来提醒
+    PomodoroQuietFocus=True        专注期让鹅安静（不叫、不弹窗）
+    PomodoroQuietMouse=False       专注期额外不让鹅抢鼠标。★ 默认关闭，见下方「常见问题」
+
+    DragNotepadMinutes=15  叼便签的冷却（分钟，0 = 不限制）
+    DragMemeMinutes=20     叼表情包的冷却（分钟，0 = 不限制）
+
+改完重启鹅生效；皮肤、幽灵鹅数量、番茄钟开关都可以在托盘菜单里实时切换。
+
+原版 config.ini 仍在程序根目录，EnableMods 必须为 True，
+否则 Mod 不会加载。
+
+调试用文件（Mod 目录下自动生成）：
+    gooseplus.log      运行日志
+    taskids.txt        原程序注册的全部任务 ID，写新 Mod 时能用
+    pomodoro-stats.txt 每天的番茄完成数
+
+想排查「鹅是不是卡住了」，用环境变量 GOOSEPLUS_HEARTBEAT=1 启动，
+它会让日志每 10 秒记一条心跳（当前阶段、剩余时间、反射开关状态）。
+
+
+四、只想要 Mod，不想要整合包
+----------------------------
+双击「安装 Mod 到已有版本.bat」，填入你自己那份 Desktop Goose
+的目录（或直接把该目录拖到 bat 上）。它会自动复制 GoosePlus.dll
+并把 config.ini 的 EnableMods 改成 True，顺便把 GoosePlusLauncher.exe
+也放过去。
+
+★ 注意：**它不会改你那份 GooseDesktop.exe**，所以那个确认框还会照弹。
+  两个办法：
+    · 用刚复制过去的 GoosePlusLauncher.exe 启动（它替你点「是」）；
+    · 或者用仓库里的 dev\patch-exe.py 给你自己的 exe 打补丁，一劳永逸。
+
+
+五、源码与二次开发
+------------------
+源码在 dev\GoosePlus\，是 .NET Framework 4.5.2 的类库，
+引用根目录的 GooseModdingAPI.dll。
+
+    dotnet build dev\GoosePlus\GoosePlus.csproj -c Release
+
+去掉确认框的二进制补丁在 dev\patch-exe.py（纯 Python，无依赖）：
+
+    python dev\patch-exe.py GooseDesktop.exe --check    # 只看当前状态
+    python dev\patch-exe.py GooseDesktop.exe            # 真的打补丁
+
+启动器在 dev\Launcher\（net452 的 WinExe，纯 user32 P/Invoke，
+负责替用户点掉每次启动都弹的 Mod 警告框）—— 打完补丁后它就用不到了，
+留着只是备用：
+
+    dotnet build dev\Launcher\GoosePlusLauncher.csproj -c Release
+
+或者直接跑 dev\build-package.bat，它会编译这两样 + 重新生成 dist 整合包
++ 打 ZIP，最后还会用 patch-exe.py --check 复核一遍补丁确实在。
+（它会把 dist 里已有的 settings.ini 存下来，打完包再放回去，
+所以你在托盘里改过的设置不会被冲掉；ZIP 里仍然是干净的默认值。）
+
+Mod 能用的 API 入口（都在 GooseShared 命名空间）：
+    InjectionPoints     PreTick / PostTick / PreUpdateRig /
+                        PostUpdateRig / PreRender / PostRender 六个事件
+    API.Goose          setSpeed / setCurrentTaskByID / setTaskRoaming /
+                        setTargetOffscreen / playHonckSound ...
+    API.TaskDatabase   getTaskIndexByID / getAllLoadedTaskIDs
+    GooseEntity        position / velocity / direction / targetPos /
+                        parameters / renderData / rig
+    SamEngine.Time     Time.time
+    SamEngine.Input    mouseX / mouseY / leftMouseButton
+
+想加新的 AI 行为，就继承 GooseTaskInfo 写一个 Task 类，
+参考官方示例 FOR MOD-MAKERS\...\DefaultMod\TaskDemo_FollowLowAccel.cs。
+
+另：原版行为（渲染、任务、配置）可以用 ilspycmd 反编译 GooseDesktop.exe 查：
+
+    dotnet tool install -g ilspycmd
+    ilspycmd -o <输出目录> -p GooseDesktop.exe
+
+反编译出来的是**逆向产物，别跟着一起分发**（GitHub 仓库里也没有，
+它在仓库外的备份目录里）。
+
+
+六、常见问题：点鹅它不来抢鼠标了？
+--------------------------------
+鹅抢鼠标的条件是：**在鹅身上点一下**（左键，距鹅身中心 30 像素以内），
+而且 config.ini 里 Task_CanAttackMouse 必须是 True。
+
+按下面顺序查，一般第一或第二条就能对上：
+
+1) 鹅是不是被暂停了？
+   双击托盘图标会切换暂停（很容易误触）。被暂停的鹅不会动，
+   所以点它也没反应。把鼠标移到托盘图标上看提示文字：
+   正常是「GoosePlus · ...」，被暂停时是「【已暂停】GoosePlus · ...」。
+   也可以右键托盘 →「继续放鹅出来」。
+
+2) 是不是开了「专注期不让鹅抢鼠标」？
+   托盘菜单 →「番茄钟」→ 看「专注期不让鹅抢鼠标」有没有打勾。
+   这个选项默认是**关**的；一旦打开，专注期（默认 25 分钟）内
+   点鹅就完全不会来抢鼠标，而且鹅照常走动、看不出区别。
+   取消勾选即可立刻恢复。
+   （settings.ini 里对应 PomodoroQuietMouse，默认 False。）
+
+3) 点得够近吗？要落在鹅身上，不是旁边。
+   想确认的话，用环境变量 GOOSEPLUS_CLICKDIAG=1 启动，
+   之后每次左键按下都会在 gooseplus.log 里记一条，形如：
+
+     clickdiag: 点击(640,400) 鹅=(300,500) dist=412.3px canAttack=True paused=False task=1  (>30px，不会触发)
+
+   dist 小于 30 且 canAttack=True 才应该触发。
+
+4) 鹅在屏幕外？托盘菜单 →「召唤鹅到鼠标位置」，或按 Ctrl+Alt+G。
+
+另外：原版有个「随机抢鼠标」的开关叫 AttackRandomly（默认 False），
+所以正常只有"你点它"这一条路径，它不会自己扑过来抢。
+
+★ 启动日志里有一行 mouse: Task_CanAttackMouse=... AttackRandomly=...
+  出问题时先看它 —— 这两个是纯内存开关，被谁改过从界面上完全看不出来。

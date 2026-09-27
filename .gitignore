@@ -1,0 +1,44 @@
+# 这个仓库就是"整合包本体"：仓库内容 = 用户解压后看到的东西。
+# 所以下面排除的都是**鹅跑起来之后才会生成**的运行时产物，
+# 它们会在第一次启动时自动重新出现，不该进版本库。
+
+# ── 日志与状态 ──────────────────────────────────────────────
+Assets/Mods/GoosePlus/gooseplus.log
+Assets/Mods/GoosePlus/taskids.txt
+Assets/Mods/GoosePlus/pomodoro-stats.txt
+
+# 托盘图标：TrayController 用 GDI+ 现画一只小鹅写成 .ico，不打包图片文件。
+Assets/Mods/GoosePlus/gooseplus.ico
+
+# ── 碎碎念文案 ──────────────────────────────────────────────
+# 118 句的真身编译在 DLL 里，首次运行会写出成 001.txt … 118.txt 供用户自己改。
+# 默认值不需要传；你自己加的句子也没必要进这个仓库。
+Assets/Mods/GoosePlus/Messages/
+
+# ── 皮肤 ────────────────────────────────────────────────────
+# 首次运行写出 6 套内置皮肤（Classic / Midnight / Sunset / Mint / Golden / Void）。
+Assets/Mods/GoosePlus/Skins/
+
+# ── 便签置换的备份目录 ──────────────────────────────────────
+# 番茄钟休息时会临时借用游戏自带的便签目录，原文件挪到这里，结束再还原。
+# 万一游戏崩了没还原，Mod 下次启动会自己处理，所以这里也不该进版本库。
+Assets/Mods/GoosePlus/NotepadBackup/
+
+# ── 运行时同步进游戏便签目录的文案 ──────────────────────────
+# GooseChat.Sync() 会把 118 句写成 gp-idle-001.txt … 只留原版那 6 句英文。
+Assets/Text/NotepadMessages/gp-idle-*.txt
+
+# ── 你自己的设置 ────────────────────────────────────────────
+# 仓库里跟踪的是**默认值**（跟 zip 里的一致，每个键都有中文注释）。
+# 你在托盘菜单里改过设置之后，这个文件会变成你个人的配置，
+# git 会显示它 modified —— 不想把自己的设置传上去就执行：
+#     git checkout -- Assets/Mods/GoosePlus/settings.ini
+# 想让它永远不进版本库，把下面这行的注释去掉：
+# Assets/Mods/GoosePlus/settings.ini
+
+# ── 编辑器 / 系统 ───────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+desktop.ini
