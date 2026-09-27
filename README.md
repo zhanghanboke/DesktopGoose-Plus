@@ -15,7 +15,7 @@ Modding API 做的二次开发整合包。
 **不是** —— Mod 的源码。这里只有编译好的 `GoosePlus.dll`。
 
 > ⚠️ **这个仓库没有源码。**
-> 源码是 16 个 `.cs`（.NET Framework 4.5.2），在开发仓库的 `dev/GoosePlus/` 下。
+> 源码是 15 个 `.cs`（4,847 行，.NET Framework 4.5.2），在开发仓库的 `dev/GoosePlus/` 下。
 > 这个仓库是从那个开发仓库的 `dist/DesktopGoose-Plus/` 目录 `git init` 出来的，
 > 只装了成品。
 > **如果你想要"源码 + 成品"一起发布，应该在外层目录建仓库**，
