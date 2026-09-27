@@ -36,9 +36,23 @@ Assets/Text/NotepadMessages/gp-idle-*.txt
 # 想让它永远不进版本库，把下面这行的注释去掉：
 # Assets/Mods/GoosePlus/settings.ini
 
+# ── AI 助手的工作区（会话记忆、临时脚本）────────────────────
+# .workbuddy/ 是本机 AI 助手留下的会话记录与临时产物，跟这个包无关，
+# 一旦 `git add -A` 就会被一起推上公开仓库。
+.workbuddy/
+
 # ── 编辑器 / 系统 ───────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
+.~*
+.*.swp
+
+# 打包/截图脚本留下的临时产物，通配比逐个列名可靠
+.tmp_*
+*.tmp
+*.orig
+*.rej
+
 Thumbs.db
 desktop.ini
