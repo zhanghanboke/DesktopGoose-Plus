@@ -1,0 +1,21 @@
+# 这是个 Windows 专用包，行尾要明确，别让 git 自己猜。
+# .bat 必须是 CRLF —— cmd.exe 对纯 LF 的批处理在某些结构（标签、
+# 多行 if 块）上会解析出错。
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+
+# 这些是二进制，别做任何行尾/编码转换。
+*.exe   binary
+*.dll   binary
+*.ico   binary
+*.jpg   binary
+*.jpeg  binary
+*.png   binary
+*.gif   binary
+*.mp3   binary
+*.wav   binary
+
+# 说明文件保持 LF 即可，跨平台看都正常。
+*.txt   text
+*.md    text
+*.ini   text
