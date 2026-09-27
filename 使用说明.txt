@@ -4,7 +4,7 @@ Desktop Goose Plus —— 二次开发整合包
 基于 Desktop Goose v0.3（原作者 Sam Chiet），通过官方 Modding API
 新增了六项功能，并换掉了一批内容（便签文案 + 表情包）。
 原程序只改了一处：为了去掉那个每次启动都弹的确认框，改了 5 个字节
-（见下面「关于那个『Mod Enabler Warning』确认框」，以及 dev\patch-exe.py）。
+（见下面「关于那个『Mod Enabler Warning』确认框」）。
 
 
 一、怎么跑起来
@@ -31,9 +31,13 @@ Desktop Goose Plus —— 二次开发整合包
     · 不移动任何 IL 偏移，不改分支目标；
     · config.ini 里 EnableMods=False 时**依然不会**加载 Mod，开关语义没变。
 
-  改法在 dev\patch-exe.py（可重复执行，重复跑会提示「已经打过补丁」）。
-  原版备份：dist\_original-backup\GooseDesktop.exe.orig。
-  想还原就把那个 .orig 改名成 GooseDesktop.exe 覆盖回去。
+  改法：那条 call 指令的编码是 0x28 + 4 字节元数据 token，固定 5 字节，
+  换成等长的「4 个 pop（丢掉 4 个参数）+ ldc.i4.6（= DialogResult.Yes）」
+  就行 —— 长度不变，所以不用改方法体头、也不用动任何分支目标。
+
+  ★ 想还原原版：去官方页面 https://samperson.itch.io/desktop-goose
+    重新下载一份，覆盖掉这个 GooseDesktop.exe 即可
+    （但那样确认框就会回来）。
 
 ★ GoosePlusLauncher.exe 是**没打补丁时的老办法** —— 它负责在框弹出的
   一瞬间替你点「是」。现在用不到了，留着只是备用：万一你哪天把
@@ -245,55 +249,47 @@ Assets\Mods\GoosePlus\settings.ini
 也放过去。
 
 ★ 注意：**它不会改你那份 GooseDesktop.exe**，所以那个确认框还会照弹。
-  两个办法：
-    · 用刚复制过去的 GoosePlusLauncher.exe 启动（它替你点「是」）；
-    · 或者用仓库里的 dev\patch-exe.py 给你自己的 exe 打补丁，一劳永逸。
+  用刚复制过去的 GoosePlusLauncher.exe 启动，它替你点「是」，
+  就看不到那个框了。
 
 
-五、源码与二次开发
-------------------
-源码在 dev\GoosePlus\，是 .NET Framework 4.5.2 的类库，
-引用根目录的 GooseModdingAPI.dll。
+五、二次开发 / 写自己的 Mod
+--------------------------
+★ 本包**只含编译好的 GoosePlus.dll，不含 Mod 源码**。
+  想改 GoosePlus 本身，得去拿源码仓库。
 
-    dotnet build dev\GoosePlus\GoosePlus.csproj -c Release
+不过这个包里写新 Mod 需要的东西是齐的：
 
-去掉确认框的二进制补丁在 dev\patch-exe.py（纯 Python，无依赖）：
+  GooseModdingAPI.dll      官方 Modding API，编译 Mod 时引用它
+  Read me! Honk.txt        原作者自己写的说明（"NEW IN VERSION 0.3: MODDING!"）
+  Assets\Mods\             Mod 就放这里，一个 Mod 一个子文件夹
+  config.ini               EnableMods=True 才会加载 Mod
 
-    python dev\patch-exe.py GooseDesktop.exe --check    # 只看当前状态
-    python dev\patch-exe.py GooseDesktop.exe            # 真的打补丁
+官方 Mod 模板（`FOR MODDERS` 文件夹）在原程序的分发包里，
+去 https://samperson.itch.io/desktop-goose 下载就能拿到。
+原作者的 Discord 也有 #goose-mods 频道。
 
-启动器在 dev\Launcher\（net452 的 WinExe，纯 user32 P/Invoke，
-负责替用户点掉每次启动都弹的 Mod 警告框）—— 打完补丁后它就用不到了，
-留着只是备用：
+Modding API 的入口（都在 GooseShared 命名空间）：
 
-    dotnet build dev\Launcher\GoosePlusLauncher.csproj -c Release
-
-或者直接跑 dev\build-package.bat，它会编译这两样 + 重新生成 dist 整合包
-+ 打 ZIP，最后还会用 patch-exe.py --check 复核一遍补丁确实在。
-（它会把 dist 里已有的 settings.ini 存下来，打完包再放回去，
-所以你在托盘里改过的设置不会被冲掉；ZIP 里仍然是干净的默认值。）
-
-Mod 能用的 API 入口（都在 GooseShared 命名空间）：
     InjectionPoints     PreTick / PostTick / PreUpdateRig /
-                        PostUpdateRig / PreRender / PostRender 六个事件
-    API.Goose          setSpeed / setCurrentTaskByID / setTaskRoaming /
+                        PostUpdateRig / PreRender / PostRender 六个注入点
+    API.Goose           setSpeed / setCurrentTaskByID / setTaskRoaming /
                         setTargetOffscreen / playHonckSound ...
-    API.TaskDatabase   getTaskIndexByID / getAllLoadedTaskIDs
-    GooseEntity        position / velocity / direction / targetPos /
+    API.TaskDatabase    getTaskIndexByID / getAllLoadedTaskIDs
+    GooseEntity         position / velocity / direction / targetPos /
                         parameters / renderData / rig
-    SamEngine.Time     Time.time
-    SamEngine.Input    mouseX / mouseY / leftMouseButton
+    SamEngine.Time      Time.time
+    SamEngine.Input     mouseX / mouseY / leftMouseButton
 
-想加新的 AI 行为，就继承 GooseTaskInfo 写一个 Task 类，
-参考官方示例 FOR MOD-MAKERS\...\DefaultMod\TaskDemo_FollowLowAccel.cs。
+想加新的 AI 行为，就继承 GooseTaskInfo 写一个 Task 类。
 
-另：原版行为（渲染、任务、配置）可以用 ilspycmd 反编译 GooseDesktop.exe 查：
+另：原版行为（渲染、任务、配置）可以用 ilspycmd 反编译本包里的
+GooseDesktop.exe 查：
 
     dotnet tool install -g ilspycmd
     ilspycmd -o <输出目录> -p GooseDesktop.exe
 
-反编译出来的是**逆向产物，别跟着一起分发**（GitHub 仓库里也没有，
-它在仓库外的备份目录里）。
+反编译出来的是**逆向产物，别跟着一起分发**。
 
 
 六、常见问题：点鹅它不来抢鼠标了？

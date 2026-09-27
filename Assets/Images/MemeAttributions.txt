@@ -8,7 +8,7 @@ Assets/Images/Memes/ 里的图片都不是本项目原创，来源如下。
 一、cover-01 ~ cover-20（来源：haowallpaper.com）
 --------------------------------------------------------------
 
-挑选清单见 dev/meme-picks.txt；编号 = 清单里的顺序。
+文件名里的 cover-NN 就是挑选时的顺序号（从 01 起）。
 
 cover-01.jpg
     标题    : 4k云雾壁纸-山脉 - 蓝天-风景
@@ -151,4 +151,4 @@ cover-20.jpg
 原版 Desktop Goose 自带的 5 张 reddit 表情包已经被全部替换，
 所以本文件不再列出它们（旧的署名指向的图片已不在包里）。
 
-本文件由 dev/meme-attributions.py 自动生成，别手改。
+本文件是自动生成的，请勿手改。

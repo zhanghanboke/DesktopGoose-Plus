@@ -55,8 +55,7 @@ echo EnableMods=True set in config.ini
 rem Your own GooseDesktop.exe has NOT been patched, so the "Mod Enabler Warning"
 rem dialog will still pop up on every launch (answer Yes or no mods load).
 rem We do NOT touch your exe -- instead we drop the launcher next to it, which
-rem clicks Yes for you. Prefer to get rid of the dialog for good? Run
-rem dev\patch-exe.py from the GoosePlus repo against your own exe.
+rem clicks Yes for you. See 使用说明.txt for why the dialog is there at all.
 if exist "%~dp0GoosePlusLauncher.exe" (
   copy /y "%~dp0GoosePlusLauncher.exe" "!TARGET!\" >nul
   if not errorlevel 1 echo Copied GoosePlusLauncher.exe ^(clicks the warning dialog for you^).
